@@ -31,10 +31,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.project_name,
-    docs_url='/api/openapi',
-    openapi_url='/api/openapi.json',
     default_response_class=ORJSONResponse,
-    lifespan=lifespan
+    docs_url="/auth/api/v1/docs",
+    openapi_url="/auth/api/v1/docs.json",
+    lifespan=lifespan,
 )
 
 
@@ -43,8 +43,8 @@ def authjwt_exception_handler(request: Request, exc: AuthJWTException):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
 
 
-app.include_router(users.router, prefix='/api/v1/users', tags=['users'], dependencies=[Depends(get_current_user_global)])
-app.include_router(roles.router, prefix='/api/v1/roles', tags=['roles'], dependencies=[Depends(get_current_user_global)])
+app.include_router(users.router, prefix='/auth/api/v1/users', tags=['users'], dependencies=[Depends(get_current_user_global)])
+app.include_router(roles.router, prefix='/auth/api/v1/roles', tags=['roles'], dependencies=[Depends(get_current_user_global)])
 
 
 if __name__ == '__main__':

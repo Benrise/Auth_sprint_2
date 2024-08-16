@@ -12,12 +12,12 @@ logging_config.dictConfig(LOGGING)
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file='../env/prod/.env',
+        env_file='../env/.env',
         env_file_encoding='utf-8',
         extra='ignore'
     )
     project_name: str = ...
-    redis_host: str = Field(9200, alias='REDIS_HOST')
+    redis_host: str = Field('redis', alias='REDIS_HOST')
     redis_port: int = Field(6379, alias='REDIS_PORT')
     echo_var: bool = ...
     debug: bool = ...
@@ -29,7 +29,7 @@ settings = Settings()
 class PostgresSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix='postgres_',
-        env_file='../env/prod/.env',
+        env_file='../env/.env',
         env_file_encoding='utf-8',
         extra='ignore'
     )
