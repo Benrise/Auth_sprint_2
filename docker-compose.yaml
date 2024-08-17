@@ -2,8 +2,6 @@ services:
     admin:
       container_name: "admin"
       build: ./services/admin
-      expose:
-        - "8000"
       env_file:
         - ./services/admin/env/.env
       depends_on:
@@ -37,8 +35,6 @@ services:
       build: ./services/auth
       env_file:
         - ./services/auth/env/.env
-      ports:
-        - "8001:8000"
       depends_on:
         auth_db:
           condition: service_healthy
@@ -62,8 +58,6 @@ services:
     fastapi:
       container_name: "fastapi"
       build: ./services/fastapi
-      ports:
-        - "8002:8000"
       env_file:
         - ./services/fastapi/env/.env
       depends_on:
