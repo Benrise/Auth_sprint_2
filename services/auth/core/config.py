@@ -1,47 +1,12 @@
 import os
 from logging import config as logging_config
 
+from dotenv import load_dotenv
+
 from core.logger import LOGGING
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-logging_config.dictConfig(LOGGING)
-
-
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file='../env/.env',
-        env_file_encoding='utf-8',
-        extra='ignore'
-    )
-    project_name: str = ...
-    redis_host: str = Field('redis', alias='REDIS_HOST')
-    redis_port: int = Field(6379, alias='REDIS_PORT')
-    echo_var: bool = ...
-    debug: bool = ...
-
-
-settings = Settings()
-
-
-class PostgresSettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_prefix='postgres_',
-        env_file='../env/.env',
-        env_file_encoding='utf-8',
-        extra='ignore'
-    )
-    db: str = ...
-    user: str = ...
-    password: str = ...
-    host: str = ...
-    port: int = ...
-
-
-pg = PostgresSettings()
-
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -66,3 +31,59 @@ GENRE_ALIAS = "genre_id"
 MAX_PAGE_SIZE = 100
 
 MAX_GENRES_SIZE = 50
+
+logging_config.dictConfig(LOGGING)
+
+load_dotenv(f'{BASE_DIR}/env/.env')
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file='.env',
+        env_file_encoding='utf-8',
+        extra='ignore'
+    )
+    project_name: str = ...
+    redis_host: str = Field('redis', alias='REDIS_HOST')
+    redis_port: int = Field(6379, alias='REDIS_PORT')
+    echo_var: bool = ...
+    debug: bool = ...
+    secret_key_session: str = ...
+
+
+settings = Settings()
+
+
+class OAuthYandexSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file='.env',
+        env_file_encoding='utf-8',
+        extra='ignore'
+    )
+    client_id: str = Field(alias='YANDEX_CLIENT_ID')
+    client_secret: str = Field(alias='YANDEX_CLIENT_SECRET')
+    scope: str = 'login:email'
+    api_base_url: str = 'https://login.yandex.ru/'
+    authorize_url: str = 'https://oauth.yandex.ru/authorize'
+    access_token_url: str = 'https://oauth.yandex.ru/token'
+    redirect_uri: str
+
+
+oauth_yandex = OAuthYandexSettings()
+
+
+class PostgresSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix='postgres_',
+        env_file='.env',
+        env_file_encoding='utf-8',
+        extra='ignore'
+    )
+    db: str = ...
+    user: str = ...
+    password: str = ...
+    host: str = ...
+    port: int = ...
+
+
+pg = PostgresSettings()

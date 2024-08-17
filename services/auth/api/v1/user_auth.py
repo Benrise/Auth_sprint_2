@@ -12,7 +12,7 @@ from async_fastapi_jwt_auth import AuthJWT
 from db.postgres import get_session
 from services.user import UserService, get_user_service
 
-from schemas.user import UserInDB, UserInDBRole, UserRoles
+from schemas.user import UserInDBRole, UserRoles
 from schemas.auth_request import AuthRequest
 
 

@@ -1,21 +1,26 @@
 from http import HTTPStatus
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
+
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from async_fastapi_jwt_auth import AuthJWT
 from async_fastapi_jwt_auth.auth_jwt import AuthJWTBearer
 
 from db.postgres import get_session
+
 from services.user import UserService, get_user_service
 from services.role import RoleService, get_role_service
-from schemas.user import UserAccess, UserRoles
+
+from schemas.user import UserRoles
 from schemas.role import (
     RoleInDB, 
     RoleCreate,
     AsignRole,
     RoleDelete
 )
-from .user_auth import roles_required, AuthRequest, UserInDBRole
+
+from .user_auth import roles_required, AuthRequest
 
 
 router = APIRouter()
@@ -25,8 +30,8 @@ auth_dep = AuthJWTBearer()
 @router.get('/', response_model=list[RoleInDB], status_code=HTTPStatus.OK)
 @roles_required(roles_list=[UserRoles().admin, UserRoles().superuser])
 async def get_roles(
-    request: AuthRequest,
-    role_service: RoleService = Depends(get_role_service), 
+    _: AuthRequest,
+    role_service: RoleService = Depends(get_role_service),
     db: AsyncSession = Depends(get_session),
     authorize: AuthJWT = Depends(auth_dep)
 ) -> RoleInDB:
@@ -38,13 +43,12 @@ async def get_roles(
 @router.post('/create', response_model=RoleInDB, status_code=HTTPStatus.CREATED)
 @roles_required(roles_list=[UserRoles().admin, UserRoles().superuser])
 async def create_role(
-    request: AuthRequest,
+    _: AuthRequest,
     role_create: RoleCreate,
     role_service: RoleService = Depends(get_role_service), 
     db: AsyncSession = Depends(get_session),
     authorize: AuthJWT = Depends(auth_dep)
 ) -> RoleInDB:
-    #await authorize.jwt_required()
 
     return await role_service.create_role(role_create, db)
 
@@ -52,7 +56,7 @@ async def create_role(
 @router.post('/asign', status_code=HTTPStatus.OK)
 @roles_required(roles_list=[UserRoles().admin, UserRoles().superuser])
 async def asign_role(
-    request: AuthRequest,
+    _: AuthRequest,
     data: AsignRole,
     role_service: RoleService = Depends(get_role_service),
     user_service: UserService = Depends(get_user_service), 
@@ -72,7 +76,7 @@ async def asign_role(
 @router.patch('/revoke', status_code=HTTPStatus.OK)
 @roles_required(roles_list=[UserRoles().admin, UserRoles().superuser])
 async def revoke_role(
-    request: AuthRequest,
+    _: AuthRequest,
     role_service: RoleService = Depends(get_role_service),
     user_service: UserService = Depends(get_user_service), 
     db: AsyncSession = Depends(get_session),
@@ -90,7 +94,7 @@ async def revoke_role(
 @router.delete('/delete', status_code=HTTPStatus.OK)
 @roles_required(roles_list=[UserRoles().admin, UserRoles().superuser])
 async def delete_role(
-    request: AuthRequest,
+    _: AuthRequest,
     data: RoleDelete,
     role_service: RoleService = Depends(get_role_service),
     db: AsyncSession = Depends(get_session),

@@ -13,6 +13,8 @@ from async_fastapi_jwt_auth.exceptions import AuthJWTException
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 
+from starlette.middleware.sessions import SessionMiddleware
+
 from api.v1 import users, roles
 from api.v1.user_auth import get_current_user_global
 
@@ -48,6 +50,8 @@ app = FastAPI(
     lifespan=lifespan,
     dependencies=[Depends(RateLimiter(times=5, seconds=10))],
 )
+
+app.add_middleware(SessionMiddleware, secret_key=settings.secret_key_session)
 
 
 def configure_tracer() -> None:

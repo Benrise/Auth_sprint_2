@@ -63,7 +63,7 @@ class JTWSettings(BaseModel):
     refresh_expires: int = timedelta(days=30)
 
 
-class UserAccess(BaseModel):
+class TokensResponse(BaseModel):
     access_token: str
     refresh_token: str
 
@@ -74,3 +74,8 @@ class ChangeUsername(BaseModel):
 
 class ChangePassword(BaseModel):
     new_password: str
+
+
+class OAuthData(BaseModel):
+    user_id: str
+    email: str | None

@@ -1,27 +1,34 @@
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import RedirectResponse
+
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from async_fastapi_jwt_auth import AuthJWT
-from async_fastapi_jwt_auth.exceptions import AuthJWTException
 from async_fastapi_jwt_auth.auth_jwt import AuthJWTBearer
 
 from db.postgres import get_session
 from db.redis import redis
+
+from services.oauth import OAuthService
 from services.user import UserService, get_user_service
+from services.oauth import get_oauth_service
+
 from schemas.user import (
-    UserInDB, 
-    UserCreate, 
-    UsernameLogin, 
-    JTWSettings, 
-    UserAccess, 
-    ChangeUsername, 
-    ChangePassword, 
+    UserInDB,
+    UserCreate,
+    UsernameLogin,
+    JTWSettings,
+    TokensResponse,
+    ChangeUsername,
+    ChangePassword,
     UserHistoryInDB,
     UserRoles
 )
+
 from models.abstract import PaginatedParams
+
 from .user_auth import roles_required, UserInDBRole, AuthRequest
 
 
@@ -51,13 +58,28 @@ async def create_user(
     return await user_service.create_user(user_create, db)
 
 
-@router.post('/signin', response_model=UserAccess, status_code=HTTPStatus.OK)
+@router.get('/signin/{provider}')
+async def yandex_signin(request: Request,
+                        provider: str,
+                        oauth_service: OAuthService = Depends(get_oauth_service)) -> RedirectResponse:
+    return await oauth_service.redirect(request, provider)
+
+
+@router.get("/signin/{provider}/callback", response_model=TokensResponse)
+async def auth_callback(request: Request,
+                        provider: str,
+                        oauth_service: OAuthService = Depends(get_oauth_service)) -> TokensResponse:
+    access_token, refresh_token, _ = await oauth_service.authenticate(request, provider)
+    return TokensResponse(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.post('/signin', response_model=TokensResponse, status_code=HTTPStatus.OK)
 async def login(
     credentials: UsernameLogin,
     user_service: UserService = Depends(get_user_service),
     db: AsyncSession = Depends(get_session),
     authorize: AuthJWT = Depends(auth_dep)
-) -> UserAccess | None:
+) -> TokensResponse | None:
     user = await user_service.user_validation(credentials, db)
     if not user:
         raise HTTPException(
@@ -80,7 +102,6 @@ async def logout(
     authorize: AuthJWT = Depends(auth_dep)
 ) -> dict:
     await authorize.jwt_required()
-    #await user_service.revoke_tokens(tokens, authorize, jtw_settings)
     await authorize.unset_jwt_cookies()
     return {"detail": "Logged out successfully"}
 
@@ -122,7 +143,6 @@ async def change_password(
     await authorize.jwt_required()
 
     user = await user_service.get_user(db, authorize)
-    print('password',user)
     await user_service.change_password(login, user, db)
     await authorize.unset_jwt_cookies()
     return {"detail": "Password successfully updated"}
@@ -152,7 +172,7 @@ async def login_history(
 @roles_required(roles_list=[UserRoles().admin, UserRoles().superuser])
 async def get_users(
     *,
-    request: AuthRequest,
+    _: AuthRequest,
     user_service: UserService = Depends(get_user_service),
     db: AsyncSession = Depends(get_session),
     authorize: AuthJWT = Depends(auth_dep)

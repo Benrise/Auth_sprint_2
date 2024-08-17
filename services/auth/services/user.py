@@ -3,24 +3,29 @@ from http import HTTPStatus
 
 from fastapi import Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
+
 from async_fastapi_jwt_auth import AuthJWT
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import select
+
 from redis.asyncio import Redis
+
 from werkzeug.security import generate_password_hash
 
 from db.redis import get_redis
+
 from models.entity import User, UserHistory
+
 from schemas.user import (
-    UserInDB, 
+    UserInDB,
     UserCreate,
     UsernameLogin,
-    UserAccess, 
-    JTWSettings, 
-    ChangeUsername, 
-    ChangePassword, 
+    TokensResponse,
+    JTWSettings,
+    ChangeUsername,
+    ChangePassword,
     LoginHistory
 )
 
@@ -50,18 +55,18 @@ class UserService:
         user = query.scalars().first()
         return user
     
-    async def create_user_tokens(self, credentials: UsernameLogin, authorize: AuthJWT) -> UserAccess:
+    async def create_user_tokens(self, credentials: UsernameLogin, authorize: AuthJWT) -> TokensResponse:
         access_token = await authorize.create_access_token(subject=credentials.username)
         refresh_token = await authorize.create_refresh_token(subject=credentials.username)
-        return UserAccess(access_token=access_token, refresh_token=refresh_token)
+        return TokensResponse(access_token=access_token, refresh_token=refresh_token)
     
-    async def revoke_tokens(self, tokens: UserAccess, authorize: AuthJWT, jtw_settings: JTWSettings):
+    async def revoke_tokens(self, tokens: TokensResponse, authorize: AuthJWT, jtw_settings: JTWSettings):
         access_jti = (await authorize.get_raw_jwt(encoded_token=tokens.access_token))['jti']
         refresh_jti = (await authorize.get_raw_jwt(encoded_token=tokens.refresh_token))['jti']
         await self.cache.setex(access_jti, jtw_settings.refresh_expires, "true")
         await self.cache.setex(refresh_jti, jtw_settings.refresh_expires, "true")
 
-    async def refresh_token(self, tokens: UserAccess, authorize: AuthJWT) -> dict:
+    async def refresh_token(self, tokens: TokensResponse, authorize: AuthJWT) -> dict:
         current_user = (await authorize.get_raw_jwt(encoded_token=tokens.refresh_token))['sub']
         new_access_token = await authorize.create_access_token(subject=current_user)
         return {"access_token": new_access_token}

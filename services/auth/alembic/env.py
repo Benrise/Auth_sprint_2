@@ -5,7 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from models import Base
+from models.entity import Base
 
 from core.config import pg
 
