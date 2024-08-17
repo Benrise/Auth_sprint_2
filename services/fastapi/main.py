@@ -4,11 +4,14 @@ import uvicorn
 from contextlib import asynccontextmanager
 
 from elasticsearch import AsyncElasticsearch
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.responses import ORJSONResponse
 from redis.asyncio import Redis
 
 from api.v1 import films, genres, persons
+
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
 
 from core.config import settings
 from core.logger import LOGGING
@@ -24,6 +27,7 @@ async def lifespan(app: FastAPI):
             f'{settings.elastic_protocol}://{settings.elastic_host}:{settings.elastic_port}'
         ]
     )
+    await FastAPILimiter.init(redis.redis)
     yield
     await redis.redis.close()
     await elastic.es.close()
@@ -33,7 +37,8 @@ app = FastAPI(
     docs_url='/movies/api/v1/docs',
     openapi_url='/movies/api/v1/docs.json',
     default_response_class=ORJSONResponse,
-    lifespan=lifespan
+    lifespan=lifespan,
+    dependencies=[Depends(RateLimiter(times=5, seconds=10))],
 )
 
 app.include_router(films.router, prefix='/movies/api/v1/films', tags=['films'])
