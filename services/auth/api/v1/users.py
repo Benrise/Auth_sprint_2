@@ -68,8 +68,15 @@ async def yandex_signin(request: Request,
 @router.get("/signin/{provider}/callback", response_model=TokensResponse)
 async def auth_callback(request: Request,
                         provider: str,
-                        oauth_service: OAuthService = Depends(get_oauth_service)) -> TokensResponse:
-    access_token, refresh_token, _ = await oauth_service.authenticate(request, provider)
+                        db: AsyncSession = Depends(get_session),
+                        oauth_service: OAuthService = Depends(get_oauth_service),
+                        authorize: AuthJWT = Depends(auth_dep)) -> TokensResponse:
+    access_token, refresh_token, _ = await oauth_service.authenticate(
+        request,
+        provider,
+        authorize,
+        db
+    )
     return TokensResponse(access_token=access_token, refresh_token=refresh_token)
 
 
@@ -89,7 +96,7 @@ async def login(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail='Incorrect password'
         )
-    tokens = await user_service.create_user_tokens(credentials, authorize)
+    tokens = await user_service.create_user_tokens(credentials.username, authorize)
     await authorize.set_access_cookies(tokens.access_token)
     await authorize.set_refresh_cookies(tokens.refresh_token)
     await user_service.add_login_to_history(user, db)

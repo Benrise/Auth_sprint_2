@@ -7,6 +7,8 @@ from http import HTTPStatus
 from fastapi import Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
+from async_fastapi_jwt_auth import AuthJWT
+
 from core.config import OAuthYandexSettings
 from models.entity import OAuth2User, User
 from schemas.user import OAuthData
@@ -89,7 +91,7 @@ class OAuthService:
             logger.error(f"Error during redirect to OAuth provider: {e}")
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="OAuth redirect failed")
 
-    async def authenticate(self, request, provider: str) -> [str, str, User]:
+    async def authenticate(self, request, provider: str, authorize: AuthJWT, db: AsyncSession) -> [str, str, User]:
         client = await self.get_provider(provider)
         try:
             token = await client.authorize_access_token(request)
@@ -122,7 +124,7 @@ class OAuthService:
                 await self.db.rollback()
                 raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="User creation failed")
 
-        return await self.user_service.complete_authentication(user, request)
+        return await self.user_service.complete_oauth2_authentication(user, request, authorize, db)
 
 
 @lru_cache()

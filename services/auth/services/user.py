@@ -1,7 +1,7 @@
 from functools import lru_cache
 from http import HTTPStatus
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 
 from async_fastapi_jwt_auth import AuthJWT
@@ -29,6 +29,8 @@ from schemas.user import (
     LoginHistory
 )
 
+from utils.logger import logger
+
 
 class UserService:
     def __init__(self, cache: Redis) -> None:
@@ -55,9 +57,9 @@ class UserService:
         user = query.scalars().first()
         return user
     
-    async def create_user_tokens(self, credentials: UsernameLogin, authorize: AuthJWT) -> TokensResponse:
-        access_token = await authorize.create_access_token(subject=credentials.username)
-        refresh_token = await authorize.create_refresh_token(subject=credentials.username)
+    async def create_user_tokens(self, username: str, authorize: AuthJWT) -> TokensResponse:
+        access_token = await authorize.create_access_token(subject=username)
+        refresh_token = await authorize.create_refresh_token(subject=username)
         return TokensResponse(access_token=access_token, refresh_token=refresh_token)
     
     async def revoke_tokens(self, tokens: TokensResponse, authorize: AuthJWT, jtw_settings: JTWSettings):
@@ -92,7 +94,7 @@ class UserService:
         user = UserHistory(**user_dto)
         user_history = await self._add_to_db(user, db)
         return user_history
-    
+
     async def get_login_history(self, user: User, page: int, size: int, db: AsyncSession):
         page = page - 1
         db_user = await db.execute(
@@ -100,14 +102,20 @@ class UserService:
                 order_by(UserHistory.logged_at).limit(size).offset(page*size)
         )
         return db_user.scalars().all()
-    
+
     async def get_all_users(self, db: AsyncSession) -> list[UserInDB]:
         query = await db.execute(select(User))
         users = query.scalars().all()
         return users
 
+    async def complete_oauth2_authentication(self, user: User, _: Request, authorize: AuthJWT, db: AsyncSession) -> tuple[str, str, User]:
+        logger.info(f"User authenticated successfully: {user.id}")
+        tokens = await self.create_user_tokens(user.login, authorize)
+        await self.add_login_to_history(user, db)
+        return tokens.access_token, tokens.refresh_token, user
 
-lru_cache()
+
+@lru_cache()
 def get_user_service(
         cache: Redis = Depends(get_redis)
 ) -> UserService:

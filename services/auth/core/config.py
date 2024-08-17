@@ -66,7 +66,7 @@ class OAuthYandexSettings(BaseSettings):
     api_base_url: str = 'https://login.yandex.ru/'
     authorize_url: str = 'https://oauth.yandex.ru/authorize'
     access_token_url: str = 'https://oauth.yandex.ru/token'
-    redirect_uri: str
+    redirect_uri: str = Field(alias='YANDEX_REDIRECT_URI')
 
 
 oauth_yandex = OAuthYandexSettings()

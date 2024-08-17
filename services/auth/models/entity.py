@@ -16,9 +16,11 @@ class User(Base):
     login = Column(String(255), unique=True, nullable=False)
     email = Column(String, nullable=False, unique=True)
     password = Column(String(255), nullable=False)
-    first_name = Column(String(50))
-    last_name = Column(String(50))
+    first_name = Column(String(50), nullable=True)
+    last_name = Column(String(50), nullable=True)
     created_at = Column(DateTime, default=datetime.now())
+    
+    credentials_updated = Column(Boolean, default=True)
 
     is_oauth2 = Column(Boolean, default=False)
     oauth2 = relationship('OAuth2User', back_populates='user', uselist=False, cascade='all, delete-orphan')
@@ -28,13 +30,21 @@ class User(Base):
     history = relationship('UserHistory', back_populates='user')
     role = relationship('Role', lazy='selectin')
 
-    def __init__(self, login: str, email: str, password: str, first_name: str, last_name: str, is_oauth2: bool = False) -> None:
+    def __init__(self,
+                 login: str,
+                 password: str,
+                 email: str | None = None,
+                 first_name: str | None = None,
+                 last_name: str | None = None,
+                 is_oauth2: bool = False,
+                 credentials_updated: bool = True) -> None:
         self.login = login
         self.email = email
         self.password = self.password = generate_password_hash(password)
         self.first_name = first_name
         self.last_name = last_name
-        self.is_oauth2 = is_oauth2,
+        self.is_oauth2 = is_oauth2
+        self.credentials_updated = credentials_updated
 
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password, password)
