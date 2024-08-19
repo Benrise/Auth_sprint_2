@@ -31,7 +31,8 @@ async def lifespan(app: FastAPI):
     if settings.debug:
         from db.postgres import create_database
         await create_database()
-    configure_tracer()
+    if settings.enable_tracer:
+        configure_tracer()
     yield
     await redis.redis.close()
 
@@ -55,8 +56,8 @@ def configure_tracer() -> None:
     trace.get_tracer_provider().add_span_processor(
         BatchSpanProcessor(
             JaegerExporter(
-                agent_host_name='jaeger',
-                agent_port=6831,
+                agent_host_name=settings.tracer_host,
+                agent_port=settings.tracer_port,
             )
         )
     )
