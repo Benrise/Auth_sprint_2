@@ -3,14 +3,14 @@ from http import HTTPStatus
 
 from fastapi import Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
+from redis.asyncio import Redis
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
-from redis.asyncio import Redis
 
 from db.redis import get_redis
-from models.entity import User, Role
-from schemas.role import RoleInDB, RoleCreate
+from models.entity import Role, User
+from schemas.role import RoleCreate, RoleInDB
 
 
 class RoleService:

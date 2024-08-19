@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 
-from schemas.user import OAuthData
-
 from fastapi.responses import RedirectResponse
+
+from schemas.user import OAuthData
 
 
 class AsyncCacheStorage(ABC):

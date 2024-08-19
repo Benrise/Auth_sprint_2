@@ -1,31 +1,24 @@
 import uuid
-
 from functools import lru_cache
-
 from http import HTTPStatus
 
+from async_fastapi_jwt_auth import AuthJWT
+from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
-
-from async_fastapi_jwt_auth import AuthJWT
-
-from core.config import OAuthYandexSettings
-from models.entity import OAuth2User, User
-from schemas.user import OAuthData
-from .user import UserService, get_user_service
-from utils.abstract import OAuthProvider
-from utils.generators import generate_unique_login
-
-from db.postgres import get_session
-
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-
+from core.config import OAuthYandexSettings
+from db.postgres import get_session
+from models.entity import OAuth2User, User
+from schemas.user import OAuthData
+from utils.abstract import OAuthProvider
+from utils.generators import generate_unique_login
 from utils.logger import logger
 
-from authlib.integrations.starlette_client import OAuth, OAuthError
+from .user import UserService, get_user_service
 
 
 class YandexOAuthProvider(OAuthProvider):

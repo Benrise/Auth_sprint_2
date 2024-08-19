@@ -1,11 +1,9 @@
-from fastapi import Depends, HTTPException
 from async_fastapi_jwt_auth import AuthJWT
+from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.postgres import get_session
-
 from models.user import User
-
 from services.user import UserService, get_user_service
 
 

@@ -1,34 +1,20 @@
 from functools import lru_cache
 from http import HTTPStatus
 
+from async_fastapi_jwt_auth import AuthJWT
 from fastapi import Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
-
-from async_fastapi_jwt_auth import AuthJWT
-
+from redis.asyncio import Redis
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import select
-
-from redis.asyncio import Redis
-
 from werkzeug.security import generate_password_hash
 
 from db.redis import get_redis
-
 from models.entity import User, UserHistory
-
-from schemas.user import (
-    UserInDB,
-    UserCreate,
-    UsernameLogin,
-    TokensResponse,
-    JTWSettings,
-    ChangeUsername,
-    ChangePassword,
-    LoginHistory
-)
-
+from schemas.user import (ChangePassword, ChangeUsername, JTWSettings,
+                          LoginHistory, TokensResponse, UserCreate, UserInDB,
+                          UsernameLogin)
 from utils.logger import logger
 
 

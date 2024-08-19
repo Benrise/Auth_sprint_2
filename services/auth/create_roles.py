@@ -1,13 +1,11 @@
-import typer
 import psycopg2
-
+import typer
 from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from models.entity import Role
 from core.config import pg, settings
-
+from models.entity import Role
 
 DATABASE_URL = f'postgresql+psycopg2://{pg.user}:{pg.password}@{pg.host}:{pg.port}/{pg.db}'
 

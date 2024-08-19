@@ -1,14 +1,10 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-
-from models.entity import Base
-
 from core.config import pg
-
+from models.entity import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -57,9 +53,10 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
 
-    from sqlalchemy import create_engine
-    import re
     import os
+    import re
+
+    from sqlalchemy import create_engine
 
     url_tokens = {
         "DB_USER": pg.user,

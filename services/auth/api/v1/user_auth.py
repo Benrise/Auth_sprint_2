@@ -1,19 +1,17 @@
 from functools import wraps
 from http import HTTPStatus
 
-from pydantic import BaseModel, EmailStr
-from fastapi import Request, APIRouter, Depends, HTTPException
-from models.entity import Role
-from fastapi.security import HTTPBearer
-
-from sqlalchemy.ext.asyncio import AsyncSession
 from async_fastapi_jwt_auth import AuthJWT
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import HTTPBearer
+from pydantic import BaseModel, EmailStr
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.postgres import get_session
-from services.user import UserService, get_user_service
-
-from schemas.user import UserInDBRole, UserRoles
+from models.entity import Role
 from schemas.auth_request import AuthRequest
+from schemas.user import UserInDBRole, UserRoles
+from services.user import UserService, get_user_service
 
 
 def roles_required(roles_list: list[UserRoles]):

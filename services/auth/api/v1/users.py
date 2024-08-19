@@ -1,36 +1,21 @@
 from http import HTTPStatus
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import RedirectResponse
-
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from async_fastapi_jwt_auth import AuthJWT
 from async_fastapi_jwt_auth.auth_jwt import AuthJWTBearer
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.postgres import get_session
 from db.redis import redis
-
-from services.oauth import OAuthService
-from services.user import UserService, get_user_service
-from services.oauth import get_oauth_service
-
-from schemas.user import (
-    UserInDB,
-    UserCreate,
-    UsernameLogin,
-    JTWSettings,
-    TokensResponse,
-    ChangeUsername,
-    ChangePassword,
-    UserHistoryInDB,
-    UserRoles
-)
-
 from models.abstract import PaginatedParams
+from schemas.user import (ChangePassword, ChangeUsername, JTWSettings,
+                          TokensResponse, UserCreate, UserHistoryInDB,
+                          UserInDB, UsernameLogin, UserRoles)
+from services.oauth import OAuthService, get_oauth_service
+from services.user import UserService, get_user_service
 
-from .user_auth import roles_required, UserInDBRole, AuthRequest
-
+from .user_auth import AuthRequest, UserInDBRole, roles_required
 
 router = APIRouter()
 auth_dep = AuthJWTBearer()

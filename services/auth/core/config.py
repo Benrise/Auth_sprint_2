@@ -2,11 +2,10 @@ import os
 from logging import config as logging_config
 
 from dotenv import load_dotenv
-
-from core.logger import LOGGING
-
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from core.logger import LOGGING
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

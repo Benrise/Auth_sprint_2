@@ -1,27 +1,17 @@
 from http import HTTPStatus
 
-from fastapi import APIRouter, Depends
-
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from async_fastapi_jwt_auth import AuthJWT
 from async_fastapi_jwt_auth.auth_jwt import AuthJWTBearer
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.postgres import get_session
-
-from services.user import UserService, get_user_service
-from services.role import RoleService, get_role_service
-
+from schemas.role import AsignRole, RoleCreate, RoleDelete, RoleInDB
 from schemas.user import UserRoles
-from schemas.role import (
-    RoleInDB, 
-    RoleCreate,
-    AsignRole,
-    RoleDelete
-)
+from services.role import RoleService, get_role_service
+from services.user import UserService, get_user_service
 
-from .user_auth import roles_required, AuthRequest
-
+from .user_auth import AuthRequest, roles_required
 
 router = APIRouter()
 auth_dep = AuthJWTBearer()
