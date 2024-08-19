@@ -18,10 +18,8 @@ services:
     admin_db:
       container_name: "db"
       build: ./services/admin_db
-      environment:
-        - POSTGRES_DB=admin_db
-        - POSTGRES_USER=admin
-        - POSTGRES_PASSWORD=123456
+      env_file:
+        - ./services/admin/env/.env
       volumes:
         - ./services/admin_db/data:/var/lib/postgresql/data
       healthcheck:
@@ -44,11 +42,8 @@ services:
     auth_db:
       container_name: "auth_db"
       build: ./services/auth_db
-      environment:
-        - POSTGRES_DB=auth_db
-        - POSTGRES_USER=admin
-        - POSTGRES_PASSWORD=123456
-        - POSTGRESQL_POSTGRES_PASSWORD=123456
+      env_file:
+        - ./services/auth/env/.env
       volumes:
         - ./services/auth_db/data:/var/lib/postgresql/data
         - ./services/auth_db/docker-entrypoint-initdb:/docker-entrypoint-initdb.d/:ro
@@ -92,8 +87,7 @@ services:
       image: jaegertracing/all-in-one:latest
       container_name: jaeger
       ports:
-        - "6831:6831"
-        - "16686:16686"
+        - ${JAEGER_PORTS}
       depends_on:
         nginx:
           condition: service_started
