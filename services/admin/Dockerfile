@@ -1,8 +1,8 @@
-FROM python:3.10
+FROM python:3.11
 
-WORKDIR /opt/app
+WORKDIR /app
 
-COPY requirements.txt requirements.txt
+COPY requirements.txt .
 COPY uwsgi/uwsgi.ini uwsgi.ini
 
 RUN pip install --upgrade pip \
@@ -14,6 +14,6 @@ COPY ./docker-entrypoint.sh /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-EXPOSE 8000
+EXPOSE 8002
 
 ENTRYPOINT ["docker-entrypoint.sh"]

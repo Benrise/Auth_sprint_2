@@ -9,29 +9,50 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.postgres import get_session
 from db.redis import redis
 from models.abstract import PaginatedParams
-from schemas.user import (ChangePassword, ChangeUsername, JTWSettings,
+from core.config import jwt_settings
+from schemas.user import (ChangePassword, ChangeUsername,
                           TokensResponse, UserCreate, UserHistoryInDB,
                           UserInDB, UsernameLogin, UserRoles)
-from services.oauth import OAuthService, get_oauth_service
-from services.user import UserService, get_user_service
+from schemas.auth_request import AuthRequest
+from services.oauth import OAuthService
+from services.user import UserService
+from services.jwt import JWTService
 
-from .user_auth import AuthRequest, UserInDBRole, roles_required
+from dependencies.user import get_user_service
+from dependencies.role import roles_required
+from dependencies.jwt import get_jwt_service
+from dependencies.oauth import get_oauth_service
+
+from schemas.user import UserInDBRole
 
 router = APIRouter()
 auth_dep = AuthJWTBearer()
-jtw_settings = JTWSettings()
 
 
 @AuthJWT.load_config
 def get_config():
-    return jtw_settings
+    return jwt_settings
 
 
 @AuthJWT.token_in_denylist_loader
 async def check_if_token_in_denylist(decrypted_token):
     jti = decrypted_token["jti"]
     entry = await redis.get(jti)
-    return entry and entry == True
+    return entry
+
+
+@router.get('/', status_code=HTTPStatus.OK)
+@roles_required(roles_list=[UserRoles().admin, UserRoles().superuser])
+async def get_users(
+    *,
+    request: AuthRequest,
+    user_service: UserService = Depends(get_user_service),
+    db: AsyncSession = Depends(get_session),
+    authorize: AuthJWT = Depends(auth_dep)
+) -> list[UserInDBRole]:
+    await authorize.jwt_required()
+
+    return await user_service.get_all_users(db)
 
 
 @router.post('/signup', response_model=UserInDB, status_code=HTTPStatus.CREATED)
@@ -69,6 +90,7 @@ async def auth_callback(request: Request,
 async def login(
     credentials: UsernameLogin,
     user_service: UserService = Depends(get_user_service),
+    jwt_service: JWTService = Depends(get_jwt_service),
     db: AsyncSession = Depends(get_session),
     authorize: AuthJWT = Depends(auth_dep)
 ) -> TokensResponse | None:
@@ -81,7 +103,7 @@ async def login(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail='Incorrect password'
         )
-    tokens = await user_service.create_user_tokens(credentials.username, authorize)
+    tokens = await jwt_service.create_user_tokens(credentials.username, authorize)
     await authorize.set_access_cookies(tokens.access_token)
     await authorize.set_refresh_cookies(tokens.refresh_token)
     await user_service.add_login_to_history(user, db)
@@ -100,14 +122,12 @@ async def logout(
 
 @router.post('/refresh', status_code=HTTPStatus.OK)
 async def refresh(
-    authorize: AuthJWT = Depends(auth_dep)
-) -> dict:
+    authorize: AuthJWT = Depends(auth_dep),
+    jwt_service: JWTService = Depends(get_jwt_service)
+) -> TokensResponse:
     await authorize.jwt_refresh_token_required()
 
-    current_user = await authorize.get_jwt_subject()
-    new_access_token = await authorize.create_access_token(subject=current_user)
-    await authorize.set_access_cookies(new_access_token)
-    return {"access_token": new_access_token}
+    return await jwt_service.refresh_token(authorize)
 
 
 @router.patch('/change-username', status_code=HTTPStatus.OK)
@@ -153,22 +173,36 @@ async def login_history(
     await authorize.jwt_required()
 
     user = await user_service.get_user(db, authorize)
-    history = await user_service.get_login_history(user, pagination.page, pagination.size, db)
+    history = await user_service.get_login_history(
+        user,
+        pagination.page,
+        pagination.size, db
+    )
     login_history = [UserHistoryInDB(
         id=i.id, user_id=i.user_id, logged_at=i.logged_at
     ) for i in history]
     return login_history
 
 
-@router.get('/users', status_code=HTTPStatus.OK)
-@roles_required(roles_list=[UserRoles().admin, UserRoles().superuser])
-async def get_users(
-    *,
-    _: AuthRequest,
+@router.get('/verify', status_code=HTTPStatus.OK)
+async def validate_token(
+    authorize: AuthJWT = Depends(auth_dep),
     user_service: UserService = Depends(get_user_service),
-    db: AsyncSession = Depends(get_session),
-    authorize: AuthJWT = Depends(auth_dep)
-) -> list[UserInDBRole]:
-    await authorize.jwt_required()
+    db: AsyncSession = Depends(get_session)
+) -> dict:
+    try:
+        await authorize.jwt_required()
+        user = await user_service.get_user(db, authorize)
 
-    return await user_service.get_all_users(db)
+        return {
+            "message": "Token is valid",
+            "user": {
+                "id": user.id,
+                "username": user.login,
+            }
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail=f"Invalid or expired token: {e}"
+        )

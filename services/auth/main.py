@@ -1,7 +1,8 @@
 import logging
-from contextlib import asynccontextmanager
-
+import datetime
 import uvicorn
+
+from contextlib import asynccontextmanager
 from async_fastapi_jwt_auth.exceptions import AuthJWTException
 from fastapi import Depends, FastAPI, Request, status
 from fastapi.responses import JSONResponse, ORJSONResponse
@@ -18,7 +19,7 @@ from redis.asyncio import Redis
 from starlette.middleware.sessions import SessionMiddleware
 
 from api.v1 import roles, users
-from api.v1.user_auth import get_current_user_global
+from dependencies.jwt import get_current_user_global
 from core.config import settings
 from core.logger import LOGGING
 from db import redis
@@ -28,10 +29,7 @@ from db import redis
 async def lifespan(app: FastAPI):
     redis.redis = Redis(host=settings.redis_host, port=settings.redis_port, db=0, decode_responses=True)
     await FastAPILimiter.init(redis.redis)
-    if settings.debug:
-        from db.postgres import create_database
-        await create_database()
-    if settings.enable_tracer:
+    if settings.enable_tracing:
         configure_tracer()
     yield
     await redis.redis.close()
@@ -45,6 +43,14 @@ app = FastAPI(
     lifespan=lifespan,
     dependencies=[Depends(RateLimiter(times=5, seconds=10))],
 )
+
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "timestamp": datetime.datetime.now().isoformat(),
+    }
 
 app.add_middleware(SessionMiddleware, secret_key=settings.secret_key_session)
 
@@ -62,6 +68,7 @@ def configure_tracer() -> None:
         )
     )
     trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
+
 
 @app.middleware('http')
 async def before_request(request: Request, call_next):
@@ -86,7 +93,7 @@ if __name__ == '__main__':
     uvicorn.run(
         'main:app',
         host='0.0.0.0',
-        port=8000,
+        port=settings.service_port,
         log_config=LOGGING,
         log_level=logging.DEBUG,
         reload=True,

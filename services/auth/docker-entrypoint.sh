@@ -5,14 +5,10 @@
 #       Вводить один раз вручную в контейнере         #
 # =================================================== #
 
-# python manage.py check --deploy
+# alembic upgrade head
 
-# python manage.py migrate --no-input
+# python create_roles.py
 
-# python manage.py createsuperuser --no-input \
-#     --username $ADMIN_DJANGO_SUPERUSER_USERNAME \
-#     --email $ADMIN_DJANGO_SUPERUSER_EMAIL
+# python create_superuser.py $AUTH_SUPERUSER_USERNAME $AUTH_SUPERUSER_PASSWORD
 
-# python manage.py collectstatic --no-input
-
-uwsgi --strict --ini uwsgi.ini
+python main.py

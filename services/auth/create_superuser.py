@@ -9,7 +9,7 @@ from models.entity import User
 DATABASE_URL = f'postgresql+psycopg2://{pg.user}:{pg.password}@{pg.host}:{pg.port}/{pg.db}'
 
 
-engine =  create_engine(DATABASE_URL, echo=settings.echo_var, future=True)
+engine = create_engine(DATABASE_URL, echo=settings.debug, future=True)
 session_maker = sessionmaker(
     engine, expire_on_commit=False
 )
@@ -35,5 +35,5 @@ def create_superuser(login: str, password: str):
     typer.echo(f'Superuser {login} created successfully')
 
 
-if __name__== '__main__':
+if __name__ == '__main__':
     typer.run(create_superuser)

@@ -1,9 +1,9 @@
 import os
+from datetime import timedelta
 from logging import config as logging_config
 
-from dotenv import load_dotenv
 from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
 
 from core.logger import LOGGING
 
@@ -28,64 +28,66 @@ GENRE_DESC = "Фильтр по жанру фильма"
 GENRE_ALIAS = "genre_id"
 
 MAX_PAGE_SIZE = 100
-
 MAX_GENRES_SIZE = 50
 
 logging_config.dictConfig(LOGGING)
 
-load_dotenv(f'{BASE_DIR}/env/.env')
-
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file='.env',
-        env_file_encoding='utf-8',
-        extra='ignore'
-    )
-    project_name: str = ...
-    redis_host: str = Field('redis', alias='REDIS_HOST')
-    redis_port: int = Field(6379, alias='REDIS_PORT')
-    echo_var: bool = ...
-    debug: bool = ...
-    secret_key_session: str = ...
-    enable_tracer: bool = ...
-    tracer_host: str = ...
-    tracer_port: int = ...
+    project_name: str = Field(..., alias='AUTH_PROJECT_NAME')
+    service_port: int = Field(8001, alias='AUTH_SERVICE_PORT')
+    redis_host: str = Field('redis', alias='AUTH_REDIS_HOST')
+    redis_port: int = Field(6379, alias='AUTH_REDIS_PORT')
+    debug: bool = Field(True, alias='AUTH_DEBUG')
+    secret_key_session: str = Field(..., alias='AUTH_SECRET_KEY_SESSION')
+    enable_tracing: bool = Field(..., alias='AUTH_ENABLE_TRACING')
+    tracer_host: str = Field(..., alias='AUTH_TRACER_HOST')
+    tracer_port: int = Field(..., alias='AUTH_TRACER_PORT')
 
 
 settings = Settings()
 
 
 class OAuthYandexSettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file='.env',
-        env_file_encoding='utf-8',
-        extra='ignore'
-    )
-    client_id: str = Field(alias='YANDEX_CLIENT_ID')
-    client_secret: str = Field(alias='YANDEX_CLIENT_SECRET')
+    client_id: str = Field(..., alias='AUTH_YANDEX_CLIENT_ID')
+    client_secret: str = Field(..., alias='AUTH_YANDEX_CLIENT_SECRET')
     scope: str = 'login:email'
     api_base_url: str = 'https://login.yandex.ru/'
     authorize_url: str = 'https://oauth.yandex.ru/authorize'
     access_token_url: str = 'https://oauth.yandex.ru/token'
-    redirect_uri: str = Field(alias='YANDEX_REDIRECT_URI')
+    redirect_uri: str = Field(..., alias='AUTH_YANDEX_REDIRECT_URI')
 
 
 oauth_yandex = OAuthYandexSettings()
 
 
 class PostgresSettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_prefix='postgres_',
-        env_file='.env',
-        env_file_encoding='utf-8',
-        extra='ignore'
-    )
-    db: str = ...
-    user: str = ...
-    password: str = ...
-    host: str = ...
-    port: int = ...
+    db: str = Field(..., alias='AUTH_POSTGRES_DB_NAME')
+    user: str = Field(..., alias='AUTH_POSTGRES_USER')
+    password: str = Field(..., alias='AUTH_POSTGRES_PASSWORD')
+    host: str = Field(..., alias='AUTH_POSTGRES_HOST')
+    port: int = Field(..., alias='AUTH_POSTGRES_PORT')
 
 
 pg = PostgresSettings()
+
+
+class JWTSettings(BaseSettings):
+    authjwt_secret_key: str = Field(..., alias='AUTH_JWT_SECRET_KEY')
+    authjwt_denylist_enabled: bool = True
+    authjwt_denylist_token_checks: set = {"access", "refresh"}
+    authjwt_token_location: set = {"cookies"}
+    authjwt_cookie_csrf_protect: bool = False
+    access_expires_minutes: int = Field(..., alias='AUTH_JWT_ACCESS_TOKEN_EXPIRE_MINUTES')
+    refresh_expires_days: int = Field(..., alias='AUTH_JWT_REFRESH_TOKEN_EXPIRE_DAYS')
+
+    @property
+    def access_expires(self) -> timedelta:
+        return timedelta(minutes=self.access_expires_minutes)
+
+    @property
+    def refresh_expires(self) -> timedelta:
+        return timedelta(days=self.refresh_expires_days)
+
+
+jwt_settings = JWTSettings()

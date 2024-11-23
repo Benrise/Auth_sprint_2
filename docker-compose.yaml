@@ -3,27 +3,35 @@ services:
       container_name: "admin"
       build: ./services/admin
       env_file:
-        - ./services/admin/env/.env
+        - .env
+      environment:
+        DJANGO_SUPERUSER_PASSWORD: ${ADMIN_DJANGO_SUPERUSER_PASSWORD}
       depends_on:
         admin_db:
           condition: service_healthy
       volumes:
-        - ./services/admin/static:/opt/app/static
+        - ./services/admin/static:/app/static
       healthcheck:
-        test: ["CMD-SHELL", "[ -e /opt/app/static ]"]
+        test: ["CMD-SHELL", "[ -e /app/static ]"]
         interval: 5s
         timeout: 10s
-        retries: 15    
+        retries: 15 
 
     admin_db:
-      container_name: "db"
+      container_name: "admin_db"
       build: ./services/admin_db
+      environment:
+          POSTGRES_DB: ${ADMIN_DJANGO_DB_NAME}
+          POSTGRES_USER: ${ADMIN_DJANGO_DB_USER}
+          POSTGRES_PASSWORD: ${ADMIN_DJANGO_DB_PASSWORD}
+          POSTGRES_HOST: ${ADMIN_DJANGO_DB_HOST}
+          POSTGRES_PORT: ${ADMIN_DJANGO_DB_PORT}
       env_file:
-        - ./services/admin/env/.env
+        - .env
       volumes:
         - ./services/admin_db/data:/var/lib/postgresql/data
       healthcheck:
-          test: ["CMD-SHELL", "pg_isready -d admin_db -U admin"] 
+          test: ["CMD-SHELL", "pg_isready -d admin_database -U postgres"] 
           interval: 2s
           timeout: 10s
           retries: 30
@@ -31,19 +39,32 @@ services:
     auth:
       container_name: "auth"
       build: ./services/auth
+      volumes:
+        - ./services/auth:/app:ro
+        - ./services/auth/logs:/app/logs
       env_file:
-        - ./services/auth/env/.env
+        - .env
       depends_on:
         auth_db:
           condition: service_healthy
         redis:
           condition: service_healthy
+      healthcheck:
+        test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+        interval: 10s
+        timeout: 5s
+        retries: 3
 
     auth_db:
       container_name: "auth_db"
       build: ./services/auth_db
-      env_file:
-        - ./services/auth/env/.env
+      environment:
+          POSTGRES_DB: ${AUTH_POSTGRES_DB_NAME}
+          POSTGRES_USER: ${AUTH_POSTGRES_USER}
+          POSTGRES_PASSWORD: ${AUTH_POSTGRES_PASSWORD}
+          POSTGRES_HOST: ${AUTH_POSTGRES_HOST}
+          POSTGRES_PORT: ${AUTH_POSTGRES_PORT}
+
       volumes:
         - ./services/auth_db/data:/var/lib/postgresql/data
         - ./services/auth_db/docker-entrypoint-initdb:/docker-entrypoint-initdb.d/:ro
@@ -55,11 +76,19 @@ services:
     fastapi:
       container_name: "fastapi"
       build: ./services/fastapi
+      volumes:
+        - ./services/fastapi:/app:ro
+        - ./services/fastapi/logs:/app/logs
       env_file:
-        - ./services/fastapi/env/.env
+        - .env
       depends_on:
         - elasticsearch
         - redis
+      healthcheck:
+        test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+        interval: 10s
+        timeout: 5s
+        retries: 3
 
     elasticsearch:
       container_name: "elasticsearch"
@@ -69,19 +98,22 @@ services:
         - ./services/es/data:/usr/share/elasticsearch/data
       healthcheck:
         test: ["CMD-SHELL", "curl -s http://localhost:9200/_cat/health?h=status | grep -q green"]
-        retries: 300
-        interval: 2s
+        retries: 90
+        interval: 3s
 
     etl_loader:
       container_name: "etl_loader"
+      ports: 
+        - ${ETL_ELASTIC_PORTS}
       build: ./services/etl_loader
+      volumes:
+        - ./services/etl_loader:/app:ro
+        - ./services/etl_loader/logs:/app/logs
+      env_file:
+        - .env
       depends_on: 
         elasticsearch:
           condition: service_healthy
-        fastapi:
-          condition: service_healthy
-      env_file:
-        - ./services/etl_loader/env/.env
 
     jaeger:
       image: jaegertracing/all-in-one:latest
@@ -103,6 +135,8 @@ services:
         timeout: 10s
         retries: 5
         start_period: 10s
+      ports:
+        - ${REDIS_PORTS}
 
     nginx:
       container_name: "nginx"
@@ -113,4 +147,4 @@ services:
         - ./services/nginx/configs:/etc/nginx/conf.d:ro
         - ./services/admin/static:/static/:ro
       ports:
-        - "80:80"
+        - ${NGINX_PORTS}

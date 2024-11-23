@@ -1,29 +1,10 @@
 import os
 from logging import config as logging_config
 
-from core.logger import LOGGING
-
 from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
 
-
-logging_config.dictConfig(LOGGING)
-
-
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file='../env/.env',
-        env_file_encoding='utf-8'
-    )
-    project_name: str = ...
-    redis_host: str = Field('redis', alias='REDIS_HOST')
-    redis_port: int = Field(6379, alias='REDIS_PORT')
-    elastic_protocol: str = Field('http', alias='ELASTIC_PROTOCOL')
-    elastic_host: str = Field('127.0.0.1', alias='ELASTIC_HOST')
-    elastic_port: int = Field(9200, alias='ELASTIC_PORT')
-
-
-settings = Settings()
+from core.logger import LOGGING
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -46,5 +27,20 @@ GENRE_DESC = "Фильтр по жанру фильма"
 GENRE_ALIAS = "genre_id"
 
 MAX_PAGE_SIZE = 100
-
 MAX_GENRES_SIZE = 50
+
+logging_config.dictConfig(LOGGING)
+
+
+class Settings(BaseSettings):
+    project_name: str = Field(..., alias='API_PROJECT_NAME')
+    service_port: int = Field(8000, alias='API_SERVICE_PORT')
+    redis_host: str = Field('redis', alias='API_REDIS_HOST')
+    redis_port: int = Field(6379, alias='API_REDIS_PORT')
+    elastic_protocol: str = Field('http', alias='API_ELASTIC_PROTOCOL')
+    elastic_host: str = Field('elasticsearch', alias='API_ELASTIC_HOST')
+    elastic_port: int = Field(9200, alias='API_ELASTIC_PORT')
+    debug: bool = Field(True, alias='API_DEBUG')
+
+
+settings = Settings()
